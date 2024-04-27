@@ -11,13 +11,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class BlockingServlet extends HttpServlet {
+public class AuthServlet extends HttpServlet {
 
-    private static final Logger log = LoggerFactory.getLogger(BlockingServlet.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthServlet.class);
 
     private final SamlClient client;
 
-    public BlockingServlet(final SamlClient client) {
+    public AuthServlet(final SamlClient client) {
         this.client = client;
     }
 
@@ -26,11 +26,11 @@ public class BlockingServlet extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-//        response.setContentType("application/json");
-//        response.setStatus(HttpServletResponse.SC_OK);
-//        response.getWriter().println("{ \"status\": \"ok\"}");
-
         try {
+            String encodedRequest = client.getSamlRequest();
+            String idpUrl = client.getIdentityProviderUrl();
+            log.info("Redirecting to IDP at url {}...", idpUrl);
+            log.info("Generated and urlencoded SAML request: {}", encodedRequest);
             client.redirectToIdentityProvider(response, null);
         } catch (SamlException e) {
             log.error("Saml error", e);
