@@ -1,4 +1,4 @@
-package org.example;
+package org.example.servlet;
 
 import com.coveo.saml.SamlClient;
 import com.coveo.saml.SamlException;
@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.util.ExtendedSamlClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,9 +19,9 @@ public class SecuredServlet extends HttpServlet {
 
     private static final Logger log = LoggerFactory.getLogger(SecuredServlet.class);
 
-    private final SamlClient client;
+    private final ExtendedSamlClient client;
 
-    public SecuredServlet(final SamlClient client) {
+    public SecuredServlet(final ExtendedSamlClient client) {
         this.client = client;
     }
 

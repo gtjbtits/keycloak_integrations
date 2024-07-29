@@ -5,6 +5,9 @@ import com.coveo.saml.SamlException;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.example.servlet.AuthServlet;
+import org.example.servlet.SecuredServlet;
+import org.example.util.ExtendedSamlClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,11 +19,11 @@ public class Main {
 
     public static void main(String[] args) throws InterruptedException {
         try (var isr = new InputStreamReader(new FileInputStream("idp-metadata.xml"))) {
-            final var client = SamlClient.fromMetadata(
-                "saml-test-client",
+            final var client = ExtendedSamlClient.fromMetadata(
+                "http://CiscoISE/4d02140a-a821-43ee-a7ea-bf818a43b76c",
                 "http://127.0.0.1:8090/secured",
                 isr,
-                SamlClient.SamlIdpBinding.POST);
+                ExtendedSamlClient.SamlIdpBinding.Redirect);
             client.setSPKeys("cert.pem", "private.pkcs8");
             launchJettyServer(client);
         } catch (IOException | SamlException e) {
@@ -28,7 +31,7 @@ public class Main {
         }
     }
 
-    public static void launchJettyServer(final SamlClient client) {
+    public static void launchJettyServer(final ExtendedSamlClient client) {
         var server = new Server(8090);
         var handler = new ServletContextHandler(ServletContextHandler.SESSIONS);
         handler.setContextPath("/");
