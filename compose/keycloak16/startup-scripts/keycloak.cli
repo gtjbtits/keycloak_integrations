@@ -1,0 +1,13 @@
+embed-server --server-config=standalone-ha.xml --std-out=echo
+batch
+
+# Same as env PROXY_ADDRESS_FORWARDING=true
+#/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=proxy-address-forwarding, value=true)
+
+/subsystem=logging/logger=org.jboss:add
+/subsystem=logging/logger=org.jboss:write-attribute(name=level, value=INFO)
+/subsystem=logging/logger=org.hibernate:add
+/subsystem=logging/logger=org.hibernate:write-attribute(name=level, value=INFO)
+
+run-batch
+stop-embedded-server

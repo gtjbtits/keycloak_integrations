@@ -1,0 +1,29 @@
+<html>
+<head>
+    <script src="https://proxy.local:38443/js/keycloak.js"></script>
+    <script>
+        var kk = null;
+        function initKeycloak() {
+            var keycloak = new Keycloak({
+                url: 'https://proxy.local:38443/',
+                realm: 'master',
+                clientId: 'frontend'
+            });
+            keycloak.init({
+                onLoad: 'login-required',
+                enableLogging: 'enableLogging',
+                // pkceMethod: 'S256',
+                checkLoginIframe: false,
+                // scope: 'profile offline_access openid'
+            }).then(function(authenticated) {
+                console.log("authenticated", authenticated);
+            }).catch(function(e) {
+                console.log('failed to initialize', e);
+            });
+            kk = keycloak;
+        }
+    </script>
+</head>
+<body onload="initKeycloak()">
+</body>
+</html>

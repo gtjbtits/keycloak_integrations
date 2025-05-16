@@ -1,0 +1,35 @@
+server {
+
+    listen 80;
+    server_name $BACKEND_HOST;
+
+    server_tokens off;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+
+}
+
+server {
+
+    listen 443 ssl;
+    server_name $BACKEND_HOST;
+
+    ssl_certificate /etc/nginx/tls/$host/cert.pem;
+    ssl_certificate_key /etc/nginx/tls/$host/key.pem;
+
+    location / {
+        root /var/www/backend;
+    }
+
+    location /api/ {
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $PROXY_TLS_PORT;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://backend:5000/api/;
+    }
+
+}
