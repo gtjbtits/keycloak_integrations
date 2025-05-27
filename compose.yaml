@@ -7,6 +7,7 @@ services:
       - JWKS_URL=http://proxy/realms/master/protocol/openid-connect/certs
     volumes:
       - "./compose/backend:/code:ro"
+    restart: always
     command: 
       - /bin/sh
       - -c 
@@ -31,6 +32,7 @@ services:
       - LOCAL_KC_JWKS_URL=http://keycloak25:8080/realms/master/protocol/openid-connect/certs
       - CHECK_INTERVAL_SECONDS=5
       - CONNECTION_TIMEOUT_SECONDS=20
+      - PROXY_MODE=auto
     volumes:
       - ./compose/backend/static:/var/www/backend:ro
       - ./compose/nginx/templates/keycloak16.conf.template:/etc/nginx/templates/keycloak16.conf.template:ro
@@ -73,7 +75,7 @@ services:
       - ./compose/nginx/tls/proxy/key.pem:/etc/nginx/tls/proxy.local/key.pem:ro
       - ./compose/nginx/tls/proxy/cert.pem:/etc/nginx/tls/proxy.local/cert.pem:ro
   keycloak16:
-    image: quay.io/keycloak/keycloak:16.1.0
+    image: quay.io/keycloak/keycloak:16.1.1
     ports:
       - 38016:8080
       - 38787:8787
@@ -91,6 +93,8 @@ services:
       - ROOT_LOGLEVEL=INFO
       - KC_PROXY=edge
       - DEBUG=true
+      - JAVA_OPTS_APPEND="-Dkeycloak.profile.feature.token_exchange=enabled"
+      # - JAVA_OPTS_APPEND="-Dkeycloak.profile.feature.token_exchange=enabled -Dkeycloak.profile.feature.impersonation=enabled -Dkeycloak.profile.feature.admin_fine_grained=enabled"
     restart: always
     volumes:
       - ./compose/keycloak16/startup-scripts/keycloak.cli:/opt/jboss/startup-scripts/keycloak.cli:ro

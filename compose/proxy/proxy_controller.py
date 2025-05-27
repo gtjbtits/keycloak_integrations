@@ -5,10 +5,22 @@ import json, time, os
 import subprocess
 import logging
 
+
 logger = logging.getLogger(f"[{__file__}]")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
 
-global_kc_was_alive = None
+PROXY_MODE_AUTO = "auto"
+PROXY_MODE_GLOBAL = "global"
+PROXY_MODE_LOCAL = "local"
+
+
+def get_proxy_mode_from_env(default_mode):
+    proxy_mode = os.environ.get("PROXY_MODE", default_mode)
+    if proxy_mode not in (PROXY_MODE_AUTO, PROXY_MODE_GLOBAL, PROXY_MODE_LOCAL):
+        proxy_mode = PROXY_MODE_AUTO
+    logger.info(f"The proxy is currently operating in '{proxy_mode}' mode")
+    return proxy_mode
+
 
 def get_int_from_env(variable_name, default_value):
     str_value = os.environ.get(variable_name)
@@ -19,11 +31,16 @@ def get_int_from_env(variable_name, default_value):
         value = default_value
     return value
 
+
+PROXY_MODE = get_proxy_mode_from_env(PROXY_MODE_AUTO)
 GLOBAL_KC_JWKS_URL = os.environ.get("GLOBAL_KC_JWKS_URL", "")
 LOCAL_KC_JWKS_URL = os.environ.get("LOCAL_KC_JWKS_URL", "")
 SHARED_JWKS_FILE_NAME = "shared_jwks.json"
 CHECK_INTERVAL_SECONDS = get_int_from_env("CHECK_INTERVAL_SECONDS", 10)
 CONNECTION_TIMEOUT_SECONDS = get_int_from_env("CONNECTION_TIMEOUT_SECONDS", 30)
+
+global_kc_was_alive = None
+
 
 def get_jwks(url):
     parsed_url = urlparse(url)
@@ -54,6 +71,7 @@ def get_jwks(url):
         logger.error(f"Error while obtaining JWKS from {url}: {e}")
         return None
 
+
 def keys_list_to_kids_dict(keys):
     kids = dict()
     for key in keys:
@@ -61,11 +79,13 @@ def keys_list_to_kids_dict(keys):
         kids[kid] = key
     return kids
 
+
 def kids_dict_to_keys_list(kids):
     keys = list()
     for kid in kids:
         keys.append(kids[kid])
     return keys
+
 
 def merge_shared_jwks_with_instance_jwks(jwks_shared, jwks_url):
     jwks = get_jwks(jwks_url)
@@ -77,9 +97,11 @@ def merge_shared_jwks_with_instance_jwks(jwks_shared, jwks_url):
         return True
     return False
 
+
 def move_if_exist(src, dst):
     if os.path.isfile(src):
         move(src, dst)
+
 
 def switch_proxy_configuration(global_kc_alive):
     if global_kc_alive:
@@ -100,7 +122,8 @@ def reload_nginx():
         logger.error(f"Nginx configuration error:\n{result.stderr}")
         return False
 
-def update_shared_jwks():
+
+def update_shared_jwks(proxy_mode):
     global global_kc_was_alive
     try:
         jwks_shared = None
@@ -113,13 +136,22 @@ def update_shared_jwks():
         jwks_shared["keys"] = []
     global_kc_alive = merge_shared_jwks_with_instance_jwks(jwks_shared, jwks_url=GLOBAL_KC_JWKS_URL)
     merge_shared_jwks_with_instance_jwks(jwks_shared, jwks_url=LOCAL_KC_JWKS_URL)
+    global_kc_alive_changed = global_kc_alive != global_kc_was_alive
     with open(SHARED_JWKS_FILE_NAME, "w") as f:
         f.write(json.dumps(jwks_shared))
-    if global_kc_alive == None or global_kc_alive != global_kc_was_alive:
-        switch_proxy_configuration(global_kc_alive)
+    if proxy_mode != PROXY_MODE_AUTO or global_kc_alive_changed:
+        if proxy_mode == PROXY_MODE_LOCAL:
+            switch_proxy_configuration(False)
+        elif proxy_mode == PROXY_MODE_GLOBAL:
+            switch_proxy_configuration(True)
+        else:
+            switch_proxy_configuration(global_kc_alive)
         if reload_nginx():
             global_kc_was_alive = global_kc_alive
 
+updated = False
 while True:
-    update_shared_jwks()
+    if not updated or PROXY_MODE == PROXY_MODE_AUTO:
+        update_shared_jwks(PROXY_MODE)
+        updated = True
     time.sleep(CHECK_INTERVAL_SECONDS)
